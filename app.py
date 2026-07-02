@@ -17,6 +17,17 @@ ARRIVE_CUTOFF = "13:00"                      # land AMS by early afternoon 15 Au
 STUDENT_DISCOUNT = {"EY": 0.10, "AF": 0.08, "LH": 0.10}
 HISTORY_FILE = "fare_history.csv"
 
+# Published checked-baggage allowance, standard Economy, India -> Europe.
+# Google Flights doesn't return exact kg, so these come from each airline's
+# own fare-rules pages (linked below) rather than the live search.
+BAGGAGE_STANDARD_KG = {"EY": 30, "AF": 23, "LH": 23}   # 1 bag, standard economy
+BAGGAGE_STUDENT_KG =  {"EY": 30, "AF": 46, "LH": 46}   # student fare (2 bags where offered)
+BAGGAGE_POLICY_PAGE = {
+    "EY": "https://www.etihad.com/en/fly-etihad/baggage",
+    "AF": "https://wwws.airfrance.co.in/information/bagages/franchise-bagages",
+    "LH": "https://www.lufthansa.com/in/en/baggage",
+}
+
 AIRLINE_SITE = {
     "EY": "https://www.etihad.com/en-in/book",
     "AF": "https://wwws.airfrance.co.in/",
@@ -34,7 +45,7 @@ def gflights_link(airline_name, date, return_date=None):
     q += f" with {airline_name}"
     return "https://www.google.com/travel/flights?q=" + urllib.parse.quote(q)
 
-st.set_page_config(page_title="BLR → AMS live fares", page_icon="✈️", layout="wide")
+st.set_page_config(page_title="BLR â AMS live fares", page_icon="âï¸", layout="wide")
 
 # ---------------- FETCH ----------------
 def serp_search(outbound, ret=None):
@@ -87,11 +98,26 @@ def best_per_airline(offers, morning_filter):
                 continue
             stops = len(legs) - 1
             dur = o.get("total_duration", 0)
+            # live layover airports, straight from Google Flights
+            layovers = o.get("layovers", []) or []
+            if layovers:
+                stop_text = " + ".join(
+                    f'{lv.get("name","")} ({lv.get("id","")})' for lv in layovers
+                )
+            elif stops == 0:
+                stop_text = "Nonstop"
+            else:
+                # fallback: infer from the arrival airport of each inner leg
+                mid = [legs[i]["arrival_airport"] for i in range(len(legs) - 1)]
+                stop_text = " + ".join(
+                    f'{m.get("name","")} ({m.get("id","")})' for m in mid
+                ) or f"{stops} stop"
             if code not in best or price < best[code]["price"]:
                 best[code] = {
                     "code": code, "airline": CARRIERS[code],
                     "price": price, "arrives": arr_time,
-                    "stops": stops, "duration": f"{dur//60}h {dur%60:02d}m",
+                    "stops": stops, "stop_text": stop_text,
+                    "duration": f"{dur//60}h {dur%60:02d}m",
                     "depart": o["_depart"],
                 }
         except Exception:
@@ -99,9 +125,9 @@ def best_per_airline(offers, morning_filter):
     return best
 
 # ---------------- UI ----------------
-st.title("✈️ BLR → AMS · land by morning, 15 Aug 2026")
-st.caption("Live Google Flights prices · Etihad / Air France / Lufthansa · "
-           f"adult return {RETURN_DATE} · auto-refreshes daily · INR")
+st.title("âï¸ BLR â AMS Â· land by morning, 15 Aug 2026")
+st.caption("Live Google Flights prices Â· Etihad / Air France / Lufthansa Â· "
+           f"adult return {RETURN_DATE} Â· auto-refreshes daily Â· INR")
 
 today = datetime.date.today().isoformat()
 try:
@@ -129,36 +155,42 @@ def render(offers, is_student):
                    "Widen ARRIVE_CUTOFF in the code if this keeps happening.")
         return
     for code, v in sorted(offers.items(), key=lambda kv: kv[1]["price"]):
+        bag_kg = BAGGAGE_STUDENT_KG[code] if is_student else BAGGAGE_STANDARD_KG[code]
         with st.container(border=True):
-            c1, c2, c3, c4 = st.columns([2, 2, 2, 3])
-            c1.metric(v["airline"], f'₹{v["price"]:,.0f}')
+            c1, c2, c3, c4 = st.columns([2, 2, 2, 2])
+            c1.metric(v["airline"], f'â¹{v["price"]:,.0f}')
             if is_student:
                 est = v["price"] * (1 - STUDENT_DISCOUNT[code])
-                c2.metric("Est. student fare", f'₹{est:,.0f}',
+                c2.metric("Est. student fare", f'â¹{est:,.0f}',
                           f'-{int(STUDENT_DISCOUNT[code]*100)}%')
             else:
-                c2.metric("Trip", f'out {v["depart"][5:]} · back {RETURN_DATE[5:]}')
-            c3.metric("Lands AMS", v["arrives"][5:16] if v["arrives"] else "—")
-            c4.metric("Journey", f'{v["stops"]} stop · {v["duration"]}')
-            l1, l2, l3 = st.columns(3)
-            l1.link_button("🔎 See on Google Flights",
+                c2.metric("Trip", f'out {v["depart"][5:]} Â· back {RETURN_DATE[5:]}')
+            c3.metric("Lands AMS", v["arrives"][5:16] if v["arrives"] else "â")
+            c4.metric("Max checked baggage", f'{bag_kg} kg')
+
+            st.markdown(f'**Stop:** {v["stop_text"]}  Â·  **Duration:** {v["duration"]}')
+
+            l1, l2, l3, l4 = st.columns(4)
+            l1.link_button("ð See on Google Flights",
                            gflights_link(v["airline"], v["depart"],
                                          None if is_student else RETURN_DATE))
-            l2.link_button(f"🏷️ Book on {v['airline'].split()[0]}.com",
+            l2.link_button(f"ð·ï¸ Book on {v['airline'].split()[0]}.com",
                            AIRLINE_SITE[code])
+            l3.link_button("ð§³ Baggage policy", BAGGAGE_POLICY_PAGE[code])
             if is_student:
-                l3.link_button("🎓 Airline student page", STUDENT_PAGE[code])
+                l4.link_button("ð Student page", STUDENT_PAGE[code])
 
-tab1, tab2, tab3 = st.tabs(["🎓 Student · one-way", "🧳 Adult · return", "📈 Price history"])
+tab1, tab2, tab3 = st.tabs(["ð Student Â· one-way", "ð§³ Adult Â· return", "ð Price history"])
 
 with tab1:
     render(ow, is_student=True)
-    st.info("The big number is the real fare Google Flights shows right now. "
-            "True student prices unlock only on each airline's student page "
-            "after ID verification, so the student column is an estimate. "
-            "Lufthansa's student fare includes 2×23 kg checked bags - the "
-            "max-baggage pick. Etihad is usually cheapest but gives 10% off "
-            "with standard baggage.")
+    st.info("Price and stop airport are live from Google Flights. Baggage "
+            "weight isn't part of that live data - it's each airline's "
+            "published Economy allowance (tap 'Baggage policy' to verify). "
+            "True student prices also unlock only on the airline's own "
+            "student page after ID verification, so that column is an "
+            "estimate. Air France and Lufthansa student fares typically add "
+            "a second 23 kg bag (46 kg total) - the max-baggage picks.")
 
 with tab2:
     render(rt, is_student=False)
@@ -176,7 +208,7 @@ with tab3:
     else:
         st.info("History starts saving from today.")
 
-if st.button("🔄 Force refresh now"):
+if st.button("ð Force refresh now"):
     fetch_all.clear()
     st.rerun()
 
