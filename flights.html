@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLR to AMS Flight Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1B1F3B;
+    --yellow: #F9D616;
+    --paper: #FAFAF7;
+    --slate: #6B7085;
+    --green: #1E7A46;
+    --line: #D8DAE3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Archivo', Helvetica, Arial, sans-serif;
+  }
+  header {
+    background: var(--yellow);
+    padding: 22px 20px 18px;
+    border-bottom: 4px solid var(--ink);
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 16px; }
+  .eyebrow {
+    font-size: 12px; letter-spacing: 3px; font-weight: 600;
+    text-transform: uppercase;
+  }
+  .route {
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-top: 4px;
+  }
+  .route .code { font-size: 42px; font-weight: 800; letter-spacing: 1px; }
+  .route .arrow { font-size: 30px; font-weight: 800; }
+  .route .sub { font-size: 14px; font-weight: 600; }
+  .subline { font-size: 13px; margin-top: 2px; }
+
+  main { padding: 20px 16px 48px; }
+
+  .cta {
+    margin: 20px auto 0;
+    max-width: 848px;
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+    background: var(--ink); color: #fff;
+    border-radius: 10px; padding: 18px 20px;
+  }
+  .cta .txt { font-size: 14px; line-height: 1.5; }
+  .cta .txt b { font-size: 16px; display: block; margin-bottom: 2px; }
+  .cta a.btn {
+    background: var(--yellow); color: var(--ink); text-decoration: none;
+    font-weight: 800; padding: 12px 20px; border-radius: 6px; font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .toggle { display: flex; gap: 8px; margin: 24px auto 0; max-width: 848px; flex-wrap: wrap; }
+  .toggle button {
+    padding: 10px 16px; border-radius: 6px; border: 2px solid var(--ink);
+    background: transparent; color: var(--ink); font-weight: 700; font-size: 13px;
+    cursor: pointer; font-family: inherit;
+  }
+  .toggle button.active { background: var(--ink); color: var(--yellow); }
+
+  .cards { max-width: 848px; margin: 16px auto 0; display: grid; gap: 14px; }
+
+  .stub {
+    position: relative;
+    background: #fff;
+    border: 2px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 20px 20px;
+    overflow: hidden;
+  }
+  .stub.cheapest { border-color: var(--green); }
+  .stub::before {
+    content: "";
+    position: absolute; left: 0; top: 58px; bottom: 0; width: 100%;
+    border-top: 2px dashed var(--line);
+  }
+  .stub-head {
+    display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px;
+    padding-bottom: 14px;
+  }
+  .stub-head .name { font-size: 18px; font-weight: 800; }
+  .stub-head .code { color: var(--slate); font-weight: 600; font-size: 13px; }
+  .badge {
+    background: var(--green); color: #fff; font-size: 11px; font-weight: 700;
+    padding: 4px 10px; border-radius: 999px; letter-spacing: .5px; text-transform: uppercase;
+  }
+  .stub-body { padding-top: 16px; }
+  .route-line { font-size: 13px; color: var(--slate); margin-bottom: 12px; }
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 12px; margin-bottom: 10px;
+  }
+  .stat-label {
+    font-size: 11px; color: var(--slate); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .stat-value { font-size: 22px; font-weight: 800; margin-top: 2px; }
+  .stat-sub { font-size: 12px; color: var(--slate); }
+  .detail { font-size: 13px; line-height: 1.5; margin-top: 8px; }
+  .detail b { color: var(--ink); }
+  .links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .links a {
+    font-size: 12px; font-weight: 700; text-decoration: none; color: var(--ink);
+    border: 1.5px solid var(--line); border-radius: 6px; padding: 8px 12px;
+  }
+  .links a:hover { border-color: var(--ink); }
+
+  footer.note {
+    max-width: 848px; margin: 28px auto 0; font-size: 12px; color: var(--slate); line-height: 1.6;
+  }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">Fare &amp; baggage tracker</div>
+    <div class="route">
+      <span class="code">BLR</span>
+      <span class="arrow">-&gt;</span>
+      <span class="code">AMS</span>
+      <span class="sub">land by morning - Sat 15 Aug 2026</span>
+    </div>
+    <div class="subline">Adult returns AMS -&gt; BLR on Sat 5 Sep 2026 - Etihad / Air France / Lufthansa only</div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- =========================================================
+       EDIT THIS: paste your real Streamlit app URL here
+       ========================================================= -->
+  <div class="cta">
+    <div class="txt">
+      <b>Want today's real prices?</b>
+      This page shows baseline estimates. The live tracker checks
+      Google Flights fares once a day.
+    </div>
+    <a class="btn" id="live-link" href="https://YOUR-APP-NAME.streamlit.app" target="_blank" rel="noopener">
+      Open live tracker &rarr;
+    </a>
+  </div>
+
+  <div class="toggle">
+    <button class="active" data-mode="student">Student - one-way</button>
+    <button data-mode="adult">Adult - return</button>
+  </div>
+
+  <div class="cards" id="cards"></div>
+
+  <footer class="note">
+    Fares shown here are baseline estimates gathered in July 2026, not live
+    prices - use the "Open live tracker" button above for today's numbers.
+    Student discounts require verification before booking (Etihad Guest,
+    Lufthansa Travel ID, or Air France's student programme). Baggage figures
+    reflect each airline's published India-Europe economy and student-fare
+    rules - always confirm on the fare conditions page before paying.
+  </footer>
+
+</main>
+
+<script>
+  // ---- EDIT THIS: your live Streamlit app URL ----
+  document.getElementById('live-link').href = "https://YOUR-APP-NAME.streamlit.app";
+
+  const AIRLINES = [
+    {
+      id: "etihad", name: "Etihad Airways", code: "EY",
+      route: "BLR -&gt; AUH -&gt; AMS - 1 stop (Abu Dhabi)",
+      morningFit: "Late-night 14 Aug departure connects via AUH; typically lands AMS late morning to midday 15 Aug.",
+      checkedKgStudent: 30, checkedKgAdult: 30,
+      baggageNote: "Standard economy: 1 x 30 kg checked + 7 kg cabin. Student offer gives ~10% off Economy but no extra baggage on this route.",
+      studentNote: "10% off Economy for verified students aged 18-32 (Etihad Guest sign-up + student ID). India to Netherlands is an eligible route.",
+      studentDiscount: 0.10,
+      oneWay: 32000, ret: 58000,
+      site: "https://www.etihad.com/en-in/book",
+      studentPage: "https://www.etihad.com/en/offers/student-offers",
+      baggagePage: "https://www.etihad.com/en/fly-etihad/baggage"
+    },
+    {
+      id: "airfrance", name: "Air France", code: "AF",
+      route: "BLR -&gt; CDG -&gt; AMS - 1 stop (Paris)",
+      morningFit: "~2 AM departure from BLR on 15 Aug reaches CDG early morning; short hop lands AMS by late morning.",
+      checkedKgStudent: 46, checkedKgAdult: 23,
+      baggageNote: "Standard economy: 1 x 23 kg checked + 12 kg cabin. Student fares typically add a second 23 kg bag - confirm at booking.",
+      studentNote: "Student discount via Air France's student programme; usually includes extra checked baggage at no cost on India-Europe routes.",
+      studentDiscount: 0.08,
+      oneWay: 48000, ret: 80000,
+      site: "https://wwws.airfrance.co.in/",
+      studentPage: "https://wwws.airfrance.co.in/information/tarifs/etudiants",
+      baggagePage: "https://wwws.airfrance.co.in/information/bagages/franchise-bagages"
+    },
+    {
+      id: "lufthansa", name: "Lufthansa", code: "LH",
+      route: "BLR -&gt; FRA/MUC -&gt; AMS - 1 stop (Germany)",
+      morningFit: "~1 AM departure lands Frankfurt ~7:45 AM; connection puts you in AMS mid-morning 15 Aug. Strongest morning-arrival fit.",
+      checkedKgStudent: 46, checkedKgAdult: 23,
+      baggageNote: "Student fare: 2 x 23 kg checked + 8 kg cabin + flexible rebooking. Standard fares carry much less - book the Student fare specifically.",
+      studentNote: "Lufthansa Student Fares (Travel ID verification) apply from Bengaluru to Europe: discounted fare, 2 x 23 kg bags, flexible changes.",
+      studentDiscount: 0.10,
+      oneWay: 59000, ret: 85000,
+      site: "https://www.lufthansa.com/in/en/flight-search",
+      studentPage: "https://www.lufthansa.com/in/en/local-page/student-fares",
+      baggagePage: "https://www.lufthansa.com/in/en/baggage"
+    }
+  ];
+
+  function inr(n) { return "Rs. " + Math.round(n).toLocaleString("en-IN"); }
+
+  function render(mode) {
+    const isStudent = mode === "student";
+    const rows = AIRLINES.map(a => {
+      const listed = isStudent ? a.oneWay : a.ret;
+      const price = isStudent ? listed * (1 - a.studentDiscount) : listed;
+      const bagKg = isStudent ? a.checkedKgStudent : a.checkedKgAdult;
+      return Object.assign({}, a, { listed, price, bagKg });
+    }).sort((x, y) => x.price - y.price);
+
+    const cheapestId = rows[0].id;
+    const maxBagId = rows.reduce((m, r) => r.bagKg > (m ? m.bagKg : 0) ? r : m, null).id;
+
+    const html = rows.map(a => {
+      const badges = [];
+      if (a.id === cheapestId) badges.push('<span class="badge">Cheapest</span>');
+      if (a.id === maxBagId) badges.push('<span class="badge" style="background:var(--ink)">Max baggage</span>');
+      return `
+        <div class="stub ${a.id === cheapestId ? 'cheapest' : ''}">
+          <div class="stub-head">
+            <div><span class="name">${a.name}</span> <span class="code">${a.code}</span></div>
+            <div>${badges.join(' ')}</div>
+          </div>
+          <div class="stub-body">
+            <div class="route-line">${a.route}</div>
+            <div class="stat-grid">
+              <div>
+                <div class="stat-label">${isStudent ? 'Student fare (est.)' : 'Adult return (est.)'}</div>
+                <div class="stat-value">${inr(a.price)}</div>
+                <div class="stat-sub">${isStudent ? 'listed ' + inr(a.listed) + ' minus ' + Math.round(a.studentDiscount*100) + '% student' : 'out 14/15 Aug - back 5 Sep'}</div>
+              </div>
+              <div>
+                <div class="stat-label">Checked baggage</div>
+                <div class="stat-value">${a.bagKg} kg</div>
+                <div class="stat-sub">${isStudent ? 'on student fare' : 'standard economy'}</div>
+              </div>
+            </div>
+            <div class="detail"><b>Morning arrival, 15 Aug:</b> ${a.morningFit}</div>
+            <div class="detail"><b>Baggage:</b> ${a.baggageNote}</div>
+            ${isStudent ? `<div class="detail"><b>Student offer:</b> ${a.studentNote}</div>` : ''}
+            <div class="links">
+              <a href="${a.site}" target="_blank" rel="noopener">Book on ${a.name.split(' ')[0]}.com</a>
+              <a href="${a.baggagePage}" target="_blank" rel="noopener">Baggage policy</a>
+              ${isStudent ? `<a href="${a.studentPage}" target="_blank" rel="noopener">Student page</a>` : ''}
+            </div>
+          </div>
+        </div>`;
+    }).join("");
+
+    document.getElementById("cards").innerHTML = html;
+  }
+
+  document.querySelectorAll(".toggle button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".toggle button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      render(btn.dataset.mode);
+    });
+  });
+
+  render("student");
+</script>
+
+</body>
+</html>
