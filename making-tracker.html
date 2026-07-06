@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Making Tracker · Aug 11</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #080810; -webkit-font-smoothing: antialiased; }
+    button { font-family: inherit; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const STORAGE_KEY = "krish-making-tracker-2026";
+    const DEADLINE    = new Date("2026-08-11T23:59:59");
+
+    const MODES = [
+      { id: "make",    label: "🔨 Make",    desc: "Woodwork + Kinetic — physical, standing",       color: "#B87A52" },
+      { id: "texture", label: "🌿 Texture", desc: "Crochet + Jewellery — sitting, meditative",      color: "#6BAA8C" },
+      { id: "sound",   label: "🎵 Sound",   desc: "Music + Poetry — expressive, no fixed posture",  color: "#D4A847" },
+      { id: "draw",    label: "✏️ Draw",    desc: "Digital Art + Design — visual, focused",         color: "#9B8EC4" },
+      { id: "build",   label: "👗 Build",   desc: "Dress — long focused blocks, clear space",       color: "#C17B9E" },
+    ];
+
+    const PROJECTS = [
+      {
+        id: "crochet", name: "Crochet", emoji: "🧶", color: "#E8A87C", modes: ["texture"],
+        tip: "Don't watch the hook — feel the tension in the yarn. That resistance is your feedback loop. Chunky yarn + 5mm hook until your hands know the rhythm.",
+        milestones: [
+          "Buy: 5mm crochet hook + chunky yarn in a colour you love",
+          "Learn slip knot + chain 20 stitches without looking down",
+          "Single crochet: complete a 10×10cm swatch",
+          "Make a rectangle project — phone sleeve or headband",
+          "Attempt one granny square — imperfect counts as done",
+          "Complete one wearable piece from cast-on to finish",
+        ]
+      },
+      {
+        id: "woodwork", name: "Woodwork", emoji: "🪵", color: "#A67B5B", modes: ["make"],
+        tip: "Balsa + craft knife first. No power tools yet. The grain of wood against your blade is information. Sand 80→120→240 grit — feel the surface change.",
+        milestones: [
+          "Buy: balsa sheets (3mm + 6mm), craft knife, sandpaper 80/120/240",
+          "Carve a simple fish or bird shape from balsa",
+          "Sand your piece through all three grits to a smooth finish",
+          "Cut 3 cam profiles from 6mm plywood: eccentric, snail, heart",
+          "Build a cam + follower on a dowel axle (cardboard housing is fine)",
+          "Finish one display piece with beeswax or linseed oil",
+        ]
+      },
+      {
+        id: "kinetic", name: "Kinetic Installations", emoji: "⚙️", color: "#6BA3BE", modes: ["make"],
+        tip: "Cardboard automata first. Turn a crank: something moves. That is the entire grammar of Potts — everything else is elaboration.",
+        milestones: [
+          "Cardboard box automaton: skewer axle + eccentric cam, figure rises and falls",
+          "Wire acrobat balanced on a fingertip (1mm aluminium wire + counterweight)",
+          "Marble run: tubes + bamboo, gravity-problem-solving until it flows",
+          "Crank-slider in pine: offset pin → rod → carved figure that moves",
+          "Theo Jansen walking linkage at small scale: 11 plywood legs, brass rod pins",
+          "Multi-cam automaton: 3+ figures animated from one shared crankshaft",
+        ]
+      },
+      {
+        id: "dress", name: "Build a Dress", emoji: "👗", color: "#C17B9E", modes: ["build"],
+        tip: "Skirt first — it's two seams and elastic. Your iron does 50% of the work. Press after every single seam without exception.",
+        milestones: [
+          "Take your measurements + buy: 2m satin + 1.5m cotton lawn + supplies",
+          "Draw paper patterns for both skirt panels (adjusted for size 10)",
+          "Cut all fabric pieces + zigzag/overlock every raw edge",
+          "Sew skirt: side seams → elastic waistband → press everything",
+          "Hem the skirt: double fold, slow machine stitch",
+          "Sew blouse: shoulder → collar → keyhole opening → sleeves → side seams → hem",
+        ]
+      },
+      {
+        id: "music", name: "Create Music", emoji: "🎵", color: "#D4A847", modes: ["sound"],
+        tip: "Voice memo first, always — capture the feeling before the logic. RnB soul lives in I–VI–IV–V. Record ugly first drafts. Refinement is a separate session.",
+        milestones: [
+          "Open GarageBand (or Audacity) — make one sound, any sound at all",
+          "Record 5 raw voice memos of melodic ideas this week, no editing",
+          "Write and loop a 4-chord progression (I–VI–IV–V, any key)",
+          "Record first demo: voice over the loop, no production yet",
+          "Complete one full song structure: verse / chorus / bridge / outro",
+          "Mix and export one finished track — rough is fine",
+        ]
+      },
+      {
+        id: "poetry", name: "Poetry Book", emoji: "✍️", color: "#7EBD9A", modes: ["sound"],
+        tip: "Don't write to the book — write to the moment. The arc reveals itself from the poems, not before them. Bad lines beat blank lines every time.",
+        milestones: [
+          "Write 3 new poems without editing during — first drafts only",
+          "Edit 5 existing poems: read aloud, cut anything that rings false",
+          "Decide the book's emotional arc: what does it move through?",
+          "Write 5 more poems — same rule, no corrections mid-poem",
+          "Arrange all poems into a rough sequence",
+          "Write the poem that feels like the title poem",
+        ]
+      },
+      {
+        id: "digitalart", name: "Digital Art", emoji: "🎨", color: "#E87070", modes: ["draw"],
+        tip: "Procreate's radial symmetry is extraordinary for jewellery — design one quarter, watch it complete itself. Structure layer, light layer, colour layer. Gestural marks first.",
+        milestones: [
+          "Set up Procreate — customise brushes + create canvas templates",
+          "Complete 5 gesture studies: 10 minutes each, no overworking",
+          "Use radial symmetry to design 2 jewellery pieces digitally",
+          "Complete one full illustration — your hands or face mid-making",
+          "One entirely abstract piece: no representational elements at all",
+          "Create a cohesive mini series: 3 pieces, same palette and mood",
+        ]
+      },
+      {
+        id: "jewellery", name: "Jewellery", emoji: "💎", color: "#A89BD4", modes: ["texture", "draw"],
+        tip: "Wire wrapping: immediate, tactile, no heat. Use copper wire to build muscle memory, move to silver-plated wire once coils feel natural in your hands.",
+        milestones: [
+          "Buy: 1mm copper + 0.8mm silver-plated wire, 3-plier set (round, flat, cutter)",
+          "Practice coil + wrapped loop on scrap wire until it feels easy",
+          "Design 3 pieces on paper: front view, side view, top view",
+          "Design 1 piece in Procreate with material notation",
+          "Complete first wire-wrapped pendant with a stone",
+          "Make a complete set: matching earrings + pendant",
+        ]
+      },
+    ];
+
+    function ProgressRing({ pct, color, size = 46 }) {
+      const stroke = 5;
+      const r      = (size - stroke) / 2;
+      const circ   = 2 * Math.PI * r;
+      const offset = circ * (1 - pct / 100);
+      return (
+        <svg width={size} height={size} style={{ transform: "rotate(-90deg)", display: "block" }}>
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1C1C2A" strokeWidth={stroke} />
+          <circle cx={size/2} cy={size/2} r={r} fill="none"
+            stroke={color} strokeWidth={stroke}
+            strokeDasharray={circ} strokeDashoffset={offset}
+            strokeLinecap="round"
+            style={{ transition: "stroke-dashoffset 0.5s ease" }}
+          />
+        </svg>
+      );
+    }
+
+    function BigRing({ pct, color, size = 88 }) {
+      const stroke = 7;
+      const r      = (size - stroke) / 2;
+      const circ   = 2 * Math.PI * r;
+      const offset = circ * (1 - pct / 100);
+      return (
+        <svg width={size} height={size} style={{ transform: "rotate(-90deg)", display: "block" }}>
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1C1C2A" strokeWidth={stroke} />
+          <circle cx={size/2} cy={size/2} r={r} fill="none"
+            stroke={color} strokeWidth={stroke}
+            strokeDasharray={circ} strokeDashoffset={offset}
+            strokeLinecap="round"
+            style={{ transition: "stroke-dashoffset 0.6s ease" }}
+          />
+        </svg>
+      );
+    }
+
+    function MakingTracker() {
+      const [checked,    setChecked]    = useState({});
+      const [expanded,   setExpanded]   = useState({});
+      const [activeMode, setActiveMode] = useState(null);
+      const [loaded,     setLoaded]     = useState(false);
+
+      useEffect(() => {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) setChecked(JSON.parse(saved));
+        } catch {}
+        setLoaded(true);
+      }, []);
+
+      const toggle = (projectId, idx) => {
+        const key  = `${projectId}-${idx}`;
+        const next = { ...checked, [key]: !checked[key] };
+        setChecked(next);
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+      };
+
+      const toggleMode   = (id) => setActiveMode(prev => prev === id ? null : id);
+      const toggleExpand = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+
+      const getDaysLeft = () =>
+        Math.max(0, Math.ceil((DEADLINE - new Date()) / (1000 * 60 * 60 * 24)));
+
+      const getProj = (p) => {
+        const done = p.milestones.filter((_, i) => checked[`${p.id}-${i}`]).length;
+        return { done, total: p.milestones.length, pct: Math.round(done / p.milestones.length * 100) };
+      };
+
+      const getTotal = () => {
+        const total = PROJECTS.reduce((s, p) => s + p.milestones.length, 0);
+        const done  = Object.values(checked).filter(Boolean).length;
+        return { done, total, pct: Math.round(done / total * 100) };
+      };
+
+      if (!loaded) return (
+        <div style={{ background: "#080810", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ color: "#555", fontFamily: "system-ui", fontSize: 13 }}>Loading…</span>
+        </div>
+      );
+
+      const daysLeft = getDaysLeft();
+      const total    = getTotal();
+      const shown    = activeMode ? PROJECTS.filter(p => p.modes.includes(activeMode)) : PROJECTS;
+
+      const C = {
+        bg: "#080810", card: "#0F0F1A", inner: "#161624",
+        border: "#20202E", text: "#EDE9E1", dim: "#6E6C78",
+        gold: "#D4A847",
+      };
+      const bodyFont  = { fontFamily: "system-ui, -apple-system, sans-serif" };
+      const eyebrow   = { ...bodyFont, fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: C.dim };
+      const serifFont = { fontFamily: "Georgia, 'Times New Roman', serif" };
+
+      return (
+        <div style={{ background: C.bg, minHeight: "100vh", color: C.text, maxWidth: 480, margin: "0 auto", padding: "22px 14px 48px" }}>
+
+          {/* Header */}
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ ...eyebrow, marginBottom: 14, textAlign: "center" }}>Making Season · Jul 6 → Aug 11</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+              <div style={{ position: "relative", flexShrink: 0 }}>
+                <BigRing pct={total.pct} color={C.gold} size={88} />
+                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ ...serifFont, fontSize: 17, fontWeight: 700, color: C.gold }}>{total.pct}%</span>
+                </div>
+              </div>
+              <div>
+                <h1 style={{ ...serifFont, fontSize: 24, fontWeight: 700, lineHeight: 1.15 }}>Your<br />Making Plan</h1>
+                <p style={{ ...bodyFont, fontSize: 12, color: C.dim, margin: "8px 0 0" }}>
+                  <span style={{ color: C.gold, fontWeight: 600 }}>{daysLeft} days</span> remaining ·{" "}
+                  <span style={{ color: "#AAA" }}>{total.done} of {total.total} done</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* AuDHD note */}
+          <div style={{ background: "#12101C", border: "1px solid #38285A", borderRadius: 12, padding: "12px 14px", marginBottom: 22, ...bodyFont, fontSize: 12, color: "#B8A2D8", lineHeight: 1.75 }}>
+            <span style={{ fontWeight: 700, color: "#CDB8EE" }}>For your brain —</span> Don't chase projects. Follow modes. Match your nervous system to the work: physical → Make, tender → Texture, full of sound → Sound, visual → Draw. Nothing is mandatory on any given day. Done beats perfect every time.
+          </div>
+
+          {/* Mode selector */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ ...eyebrow, marginBottom: 10 }}>Today's energy →</div>
+            <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+              {MODES.map(m => {
+                const on = activeMode === m.id;
+                return (
+                  <button key={m.id} onClick={() => toggleMode(m.id)} style={{
+                    border: `1.5px solid ${on ? m.color : "#2A2A3C"}`,
+                    background: on ? m.color + "18" : "transparent",
+                    borderRadius: 99, padding: "6px 13px", cursor: "pointer",
+                    fontSize: 12, color: on ? m.color : C.dim, ...bodyFont,
+                    transition: "all 0.18s", whiteSpace: "nowrap",
+                  }}>
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
+            {activeMode && (
+              <div style={{ ...bodyFont, fontSize: 11, color: C.dim, marginTop: 9 }}>
+                {MODES.find(m => m.id === activeMode)?.desc} ·{" "}
+                <span onClick={() => setActiveMode(null)} style={{ color: C.gold, cursor: "pointer" }}>show all</span>
+              </div>
+            )}
+          </div>
+
+          {/* Project cards */}
+          {shown.map(project => {
+            const prog   = getProj(project);
+            const isOpen = !!expanded[project.id];
+            const isDone = prog.done === prog.total;
+
+            return (
+              <div key={project.id} style={{
+                background: C.card, borderRadius: 14, marginBottom: 10, overflow: "hidden",
+                border: `1px solid ${isDone ? project.color + "50" : C.border}`,
+              }}>
+                <div onClick={() => toggleExpand(project.id)} style={{
+                  padding: "14px 16px", cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 13,
+                }}>
+                  <div style={{ position: "relative", width: 46, height: 46, flexShrink: 0 }}>
+                    <ProgressRing pct={prog.pct} color={project.color} size={46} />
+                    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ fontSize: 19 }}>{project.emoji}</span>
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                      <span style={{ ...serifFont, fontWeight: 700, fontSize: 15 }}>{project.name}</span>
+                      <span style={{ ...bodyFont, fontSize: 12, fontWeight: 700, flexShrink: 0, color: isDone ? "#7ED4A0" : project.color }}>
+                        {isDone ? "✓ Done" : `${prog.done}/${prog.total}`}
+                      </span>
+                    </div>
+                    <div style={{ marginTop: 5, display: "flex", gap: 5, flexWrap: "wrap" }}>
+                      {project.modes.map(mId => {
+                        const md = MODES.find(x => x.id === mId);
+                        return (
+                          <span key={mId} style={{
+                            fontSize: 10, ...bodyFont, color: md.color,
+                            border: `1px solid ${md.color}40`, borderRadius: 99,
+                            padding: "2px 7px", background: md.color + "0F",
+                          }}>{md.label}</span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <span style={{ color: "#3A3A50", fontSize: 11, flexShrink: 0 }}>{isOpen ? "▲" : "▼"}</span>
+                </div>
+
+                {isOpen && (
+                  <div style={{ padding: "0 16px 16px", borderTop: `1px solid ${C.border}` }}>
+                    <div style={{
+                      background: C.inner, borderLeft: `3px solid ${project.color}`,
+                      borderRadius: "0 8px 8px 0", padding: "10px 12px",
+                      margin: "12px 0", fontSize: 12, color: "#AAA", lineHeight: 1.75, ...bodyFont,
+                    }}>
+                      {project.tip}
+                    </div>
+
+                    {project.milestones.map((ms, idx) => {
+                      const key  = `${project.id}-${idx}`;
+                      const done = !!checked[key];
+                      return (
+                        <div key={idx} onClick={() => toggle(project.id, idx)} style={{
+                          display: "flex", alignItems: "flex-start", gap: 12,
+                          padding: "11px 0", cursor: "pointer", minHeight: 44,
+                          borderBottom: idx < project.milestones.length - 1 ? `1px solid ${C.border}` : "none",
+                        }}>
+                          <div style={{
+                            width: 22, height: 22, borderRadius: 7, flexShrink: 0, marginTop: 1,
+                            border: `2px solid ${done ? project.color : "#30304A"}`,
+                            background: done ? project.color + "20" : "transparent",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            transition: "all 0.18s",
+                          }}>
+                            {done && <span style={{ fontSize: 13, color: project.color, lineHeight: 1 }}>✓</span>}
+                          </div>
+                          <span style={{
+                            fontSize: 13, lineHeight: 1.6, flex: 1, ...bodyFont,
+                            color: done ? "#3E3E52" : "#C8C4BC",
+                            textDecoration: done ? "line-through" : "none",
+                            transition: "color 0.18s",
+                          }}>
+                            {ms}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          <p style={{ ...bodyFont, textAlign: "center", marginTop: 24, fontSize: 11, color: "#2E2E40" }}>
+            Progress saves in this browser ✦ {daysLeft} days to August 11
+          </p>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<MakingTracker />);
+  </script>
+</body>
+</html>
